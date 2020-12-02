@@ -1,0 +1,26 @@
+{
+  "name": "lgtv-serial",
+  "version": "0.9.0",
+  "description": "Command your LG TV over serial port",
+  "main": "lgtv.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ybizeul/lgtv-serial.git"
+  },
+  "keywords": [
+    "lg",
+    "serial"
+  ],
+  "author": "Yann Bizeul",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ybizeul/lgtv-serial/issues"
+  },
+  "homepage": "https://github.com/ybizeul/lgtv-serial#readme",
+  "dependencies": {
+    "serial-io": "^1.2.0"
+  }
+}
