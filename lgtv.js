@@ -30,7 +30,7 @@ class LGTV {
         this.path=path
         this.serialIO = require("serial-io")
     }
-    _send(string) {
+    send(string) {
         return this.serialIO.send(this.path,string + "\r",{"timeoutRolling":100})
     }
     tvID(tvID) {
@@ -40,7 +40,7 @@ class LGTV {
         }
         return String(int_tvID)
     }
-    send(command,value,tvID=null){
+    set(command,value,tvID=null){
         if (! _commands.hasOwnProperty(command)) {
             console.log(`Unknown command ${command}`)
             throw new Error(`Unknown command ${command}`)
@@ -50,7 +50,28 @@ class LGTV {
         var line = null
 
         if (c[2] == typeof(bool)) {
-            line = `${c[0]}${c[1]} ${this.tvID(tvID)} ${value?"01":"00"}`
+            var v=null
+            if (typeof(value) == "bool") {
+                v=value?"01":"00"
+            }
+            else if (typeof(value) == "number") {
+                v=(value==0)?"00":"01"
+            }
+            else if (typeof(value) == "string") {
+                if (value=="1" || value =="true"){
+                    v="01"
+                }
+                else if (value=="0" || value =="false"){
+                    v="00"
+                }
+                else {
+                    throw new Error(`Cannot convert str from [${value}] for [${command}]`)
+                }
+            }
+            else {
+                throw new Error(`Cannot convert type from [${typeof(value)}] for [${command}]`)
+            }
+            line = `${c[0]}${c[1]} ${this.tvID(tvID)} ${v}`
         }
         else if (c[2] == typeof(int)) {
             line = `${c[0]}${c[1]} ${this.tvID(tvID)} ${value}`
@@ -71,9 +92,18 @@ class LGTV {
 
             }
         }
-        return this._send(line)
+        return this.send(line)
             .then(response => {
-                return response.indexOf("OK") != -1
+                // a 01 OK01x
+                const regex = /. \d+ (..)(.*)x/
+
+                var found = null
+                if (found=response.match(regex)) {
+                    return { status: found[1], result: found[2] }
+                }
+                else {
+                    throw new Error(`Unexpected Response [${response}]`)
+                }
             })
     }
     get(command,tvID=null) {
@@ -88,17 +118,17 @@ class LGTV {
             line = `${c[0]}${c[1]} ${this.tvID(tvID)} FF`
         }
 
-        return this._send(line + "\r")
+        return this.send(line)
             .then(response => {
-                const regex = /.*OK(.*)x/
+                const regex = /. \d+ (..)(.*)x/
 
                 // a 01 OK01x
                 var found = null
                 if (found=response.match(regex)) {
-                    return found[1]
+                    return { status: found[1], result: found[2] }
                 }
                 else {
-                    throw new Error(`Unexpected Response ${response}`)
+                    throw new Error(`Unexpected Response [${response}]`)
                 }
             })
 }
