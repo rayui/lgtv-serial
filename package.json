@@ -1,6 +1,6 @@
 {
   "name": "lgtv-serial",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Command your LG TV over serial port",
   "main": "lgtv.js",
   "scripts": {
