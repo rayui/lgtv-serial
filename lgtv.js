@@ -31,7 +31,7 @@ class LGTV {
         this.serialIO = require("serial-io")
     }
     send(string) {
-        return this.serialIO.send(this.path,string + "\r",{"timeoutRolling":100})
+        return this.serialIO.send(this.path,string + "\r",{"timeoutInit":500})
     }
     tvID(tvID) {
         const int_tvID=tvID?tvID:this.defaultID
