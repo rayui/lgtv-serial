@@ -74,7 +74,8 @@ class LGTV {
             line = `${c[0]}${c[1]} ${this.tvID(tvID)} ${v}`
         }
         else if (c[2] == typeof(int)) {
-            line = `${c[0]}${c[1]} ${this.tvID(tvID)} ${value}`
+            var num = value.toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false})
+	    line = `${c[0]}${c[1]} ${this.tvID(tvID)} ${num}`
         }
         else {
             if (c[0] == "aspect_ratio") {
