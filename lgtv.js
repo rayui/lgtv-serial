@@ -49,19 +49,19 @@ class LGTV {
         const c=_commands[command]
         var line = null
 
-        if (c[2] == typeof(bool)) {
+        if (typeof(c[2]) === "boolean")) {
             var v=null
-            if (typeof(value) == "bool") {
+            if (typeof(value) === "boolean") {
                 v=value?"01":"00"
             }
-            else if (typeof(value) == "number") {
+            else if (typeof(value) === "number") {
                 v=(value==0)?"00":"01"
             }
-            else if (typeof(value) == "string") {
-                if (value=="1" || value =="true"){
+            else if (typeof(value) === "string") {
+                if (value=="1" || value ==="true"){
                     v="01"
                 }
-                else if (value=="0" || value =="false"){
+                else if (value=="0" || value === "false"){
                     v="00"
                 }
                 else {
@@ -73,7 +73,7 @@ class LGTV {
             }
             line = `${c[0]}${c[1]} ${this.tvID(tvID)} ${v}`
         }
-        else if (c[2] == typeof(int)) {
+        else if (typeof(c[2]) === "integer")) {
             var num = value.toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false})
 	    line = `${c[0]}${c[1]} ${this.tvID(tvID)} ${num}`
         }
