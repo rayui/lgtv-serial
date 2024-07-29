@@ -1,3 +1,5 @@
+const serialIO = require("serial-io");
+
 const TYPES = {
   BOOL: 0,
   INT: 1,
@@ -31,11 +33,16 @@ const COMMANDS = {
   "input": { c: "xb", t: TYPES.NUL }
 }
 
+// a 01 OK01x
+const CMD_REGEX = /. \d+ (..)(.*)x/
+
 class LGTV {
+  #defaultId;
+  #path;
+
   constructor(path) {
-    this.defaultID = 1;
-    this.path = path;
-    this.serialIO = require("serial-io");
+    this.#defaultId = 1;
+    this.#path = path;
   }
   #isCommand(command) {
     if (!COMMANDS.hasOwnProperty(command)) {
@@ -52,94 +59,74 @@ class LGTV {
   #getCommand(command) {
     return COMMANDS[command].c;
   }
-  #inputToBool(value) {
+  #formatHex(value) {
+    return (value > 0
+      ? value < 0xFF
+        ? value
+        : 0xFF
+      : 0).toString(16).toUpperCase().padStart(2, '0');
+  }
+  #formatBool(value) {
     switch (typeof (value)) {
       case "boolean":
       case "number":
-        return ((value !== 0) * 1).toLocaleString('en-US', {
-          minimumIntegerDigits: 2,
-          useGrouping: false
-        });
+        return this.#formatHex((value !== 0) * 1)
       default:
         throw new Error(`Cannot convert type from [${typeof (value)}] for [${command}]`)
     }
   }
-  #inputToInt(value) {
+  #formatInt(value) {
     switch (typeof (value)) {
       case "boolean":
       case "number":
-        const result = (value * 1).toLocaleString('en-US', {
-          minimumIntegerDigits: 2,
-          useGrouping: false
-        });
-        if (result < 0 || result > 64) {
-          throw new Error(`Cannot convert type from [${typeof (value)}] for [${command}]`)
-        }
+        const result = this.#formatHex(value * 1);
         return result;
       default:
         throw new Error(`Cannot convert type from [${typeof (value)}] for [${command}]`)
     }
   }
-  send(string) {
-    return this.serialIO.send(this.path, string + "\r", { "timeoutInit": 500 })
+  #getTVID(id) {
+    return this.#formatInt(id ? id : this.#defaultId);
   }
-  tvID(tvID) {
-    const int_tvID = tvID ? tvID : this.defaultID
-    if (String(int_tvID).length == 1) {
-      return "0" + String(int_tvID)
+  #createLine(command, id, value) {
+    const c = this.#getCommand(command);
+    const i = this.#getTVID(id);
+    const v = this.#isCommandBool(command) ?
+      this.#formatBool(value) :
+      this.#isCommandInt(command) ? 
+        this.#formatInt(value) :
+        null;
+
+    if (!!!v) {
+      throw new Error(`Unrecognized type for command [${command}]`);
     }
-    return String(int_tvID)
+
+    return `${c} ${i} ${v}`;
+  }
+  #parseResponse(response) {
+    const found = response.match(CMD_REGEX);
+    if (!!!found) {
+      throw new Error(`Unexpected Response [${response}]`)
+    }
+
+    return { status: found[1], result: found[2] }
+  }
+  #send(string) {
+    return serialIO.send(this.#path, string + "\r", { "timeoutInit": 500 })
   }
   set(command, value, tvID = null) {
     this.#isCommand(command);
-    const cmd = this.#getCommand(command);
+    const line = this.#createLine(command, id, value);
 
-    var line = null
-
-    if (this.#isCommandBool(command)) {
-      line = `${cmd} ${this.tvID(tvID)} ${this.#inputToBool(value)}`
-    }
-    else if (this.#isCommandInt(command)) {
-      line = `${cmd} ${this.tvID(tvID)} ${this.#inputToInt(value)}`
-    }
-
-    if (!line) {
-      throw new Error(`Invalid command`)
-    }
-
-    return this.send(line)
-      .then(response => {
-        // a 01 OK01x
-        const regex = /. \d+ (..)(.*)x/
-
-        var found = null
-        if (found = response.match(regex)) {
-          return { status: found[1], result: found[2] }
-        }
-        else {
-          throw new Error(`Unexpected Response [${response}]`)
-        }
-      })
+    return this.#send(line)
+      .then(this.#parseResponse)
   }
   get(command, tvID = null) {
     this.#isCommand(command);
+    const line = this.#createLine(command, id, 0xFF);
 
-    const c = COMMANDS[command]
-    const line = `${c[0]}${c[1]} ${this.tvID(tvID)} FF`;
-
-    return this.send(line)
-      .then(response => {
-        const regex = /. \d+ (..)(.*)x/
-
-        // a 01 OK01x
-        var found = null
-        if (found = response.match(regex)) {
-          return { status: found[1], result: found[2] }
-        }
-        else {
-          throw new Error(`Unexpected Response [${response}]`)
-        }
-      })
+    return this.#send(line)
+      .then(this.#parseResponse)
   }
 }
 
