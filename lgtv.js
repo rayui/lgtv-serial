@@ -30,7 +30,7 @@ const COMMANDS = {
   "programme": { c: "mb", t: TYPES.BOOL },
   "key": { c: "mc", t: TYPES.NULL },
   "backlight": { c: "mg", t: TYPES.INT },
-  "input": { c: "xb", t: TYPES.NUL }
+  "input": { c: "xb", t: TYPES.NULL }
 }
 
 // a 01 OK01x
@@ -114,14 +114,14 @@ class LGTV {
   #send(string) {
     return serialIO.send(this.#path, string + "\r", { "timeoutInit": 500 })
   }
-  set(command, value, tvID = null) {
+  set(command, value, id = null) {
     this.#isCommand(command);
     const line = this.#createLine(command, id, value);
 
     return this.#send(line)
       .then(this.#parseResponse)
   }
-  get(command, tvID = null) {
+  get(command, id = null) {
     this.#isCommand(command);
     const line = this.#createLine(command, id, 0xFF);
 
