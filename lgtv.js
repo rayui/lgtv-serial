@@ -3,35 +3,48 @@ const serialIO = require("serial-io");
 const TYPES = {
   BOOL: 0,
   INT: 1,
-  BITMAP: 2,
-  NULL: 3
+  NULL: 2
 };
 
 const COMMANDS = {
-  "power": { c: "ka", t: TYPES.BOOL },
-  "aspect_ratio": { c: "kc", t: TYPES.NULL },
-  "screen_mute": { c: "kd", t: TYPES.BOOL },
-  "volume_mute": { c: "ke", t: TYPES.BOOL },
-  "volume_control": { c: "kf", t: TYPES.INT },
-  "contrast": { c: "kg", t: TYPES.INT },
-  "brightness": { c: "kh", t: TYPES.INT },
-  "colour": { c: "ki", t: TYPES.INT },
-  "tint": { c: "kj", t: TYPES.INT },
-  "sharpness": { c: "kk", t: TYPES.INT },
-  "osd": { c: "kl", t: TYPES.BOOL },
-  "remote": { c: "km", t: TYPES.BOOL },
-  "treble": { c: "kr", t: TYPES.INT },
-  "bass": { c: "ks", t: TYPES.INT },
-  "balance": { c: "kt", t: TYPES.INT },
-  "temperature": { c: "ku", t: TYPES.INT },
-  "energy": { c: "jq", t: TYPES.INT },
-  "auto": { c: "ju", t: TYPES.NULL },
-  "tune": { c: "ma", t: TYPES.NULL },
-  "programme": { c: "mb", t: TYPES.BOOL },
-  "key": { c: "mc", t: TYPES.NULL },
-  "backlight": { c: "mg", t: TYPES.INT },
-  "input": { c: "xb", t: TYPES.NULL }
-}
+  power: { cmd: "ka", type: TYPES.BOOL },
+  aspect_ratio: { cmd: "kc", type: TYPES.NULL },
+  screen_mute: { cmd: "kd", type: TYPES.BOOL },
+  volume_mute: { cmd: "ke", type: TYPES.BOOL },
+  volume_control: { cmd: "kf", type: TYPES.INT },
+  contrast: { cmd: "kg", type: TYPES.INT },
+  brightness: { cmd: "kh", type: TYPES.INT },
+  colour: { cmd: "ki", type: TYPES.INT },
+  tint: { cmd: "kj", type: TYPES.INT },
+  sharpness: { cmd: "kk", type: TYPES.INT },
+  osd: { cmd: "kl", type: TYPES.BOOL },
+  remote: { cmd: "km", type: TYPES.BOOL },
+  treble: { cmd: "kr", type: TYPES.INT },
+  bass: { cmd: "ks", type: TYPES.INT },
+  balance: { cmd: "kt", type: TYPES.INT },
+  temperature: { cmd: "ku", type: TYPES.INT },
+  energy: { cmd: "jq", type: TYPES.INT },
+  auto: { cmd: "ju", type: TYPES.NULL },
+  tune: { cmd: "ma", type: TYPES.NULL },
+  programme: { cmd: "mb", type: TYPES.BOOL },
+  key: { cmd: "mc", type: TYPES.NULL },
+  backlight: { cmd: "mg", type: TYPES.INT },
+  input: {
+    cmd: "xb",
+    type: TYPES.INT,
+    map: {
+      DTV: 0x0,
+      Analogue: 0x10,
+      AV: 0x20,
+      Component: 0x40,
+      RGB: 0x60,
+      HDMI1: 0x90,
+      HDMI2: 0x91,
+      HDMI3: 0x92,
+      HDMI4: 0x93,
+    }
+  }
+};
 
 // a 01 OK01x
 const CMD_REGEX = /. \d+ (..)(.*)x/
@@ -50,14 +63,11 @@ class LGTV {
       throw new Error(`Unknown command ${command}`)
     }
   }
-  #isCommandBool(command) {
-    return COMMANDS[command].t === TYPES.BOOL;
-  }
-  #isCommandInt(command) {
-    return COMMANDS[command].t === TYPES.INT;
-  }
   #getCommand(command) {
-    return COMMANDS[command].c;
+    return COMMANDS[command].cmd;
+  }
+  #getCommandType(command) {
+    return COMMANDS[command].type;
   }
   #formatHex(value) {
     return (value > 0
@@ -88,20 +98,26 @@ class LGTV {
   #getTVID(id) {
     return this.#formatInt(id ? id : this.#defaultId);
   }
-  #createLine(command, id, value) {
-    const c = this.#getCommand(command);
-    const i = this.#getTVID(id);
-    const v = this.#isCommandBool(command) ?
-      this.#formatBool(value) :
-      this.#isCommandInt(command) ? 
-        this.#formatInt(value) :
-        null;
-
-    if (!!!v) {
-      throw new Error(`Unrecognized type for command [${command}]`);
+  #mapInput(command, value) {
+    return COMMANDS[command].map?.[value] ?? value;
+  }
+  #formatValue(command, value) {
+    switch (this.#getCommandType(command)) {
+      case TYPES.BOOL:
+        return this.#formatBool(value);
+      case TYPES.INT:
+        return this.#formatInt(value);
+      default:
+        return value;
     }
+  }
+  #createLine(command, id, value) {
+    const cmd = this.#getCommand(command);
+    const tvId = this.#getTVID(id);
 
-    return `${c} ${i} ${v}`;
+    const mappedInput = this.#mapInput(command, value);
+
+    return `${cmd} ${tvId} ${this.#formatValue(command, mappedInput)}`;
   }
   #parseResponse(response) {
     const found = response.match(CMD_REGEX);
