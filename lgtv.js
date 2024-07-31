@@ -1,53 +1,5 @@
 const serialIO = require("serial-io");
-
-const TYPES = {
-  BOOL: 0,
-  INT: 1,
-  NULL: 2
-};
-
-const COMMANDS = {
-  power: { cmd: "ka", type: TYPES.BOOL },
-  aspect_ratio: { cmd: "kc", type: TYPES.NULL },
-  screen_mute: { cmd: "kd", type: TYPES.BOOL },
-  volume_mute: { cmd: "ke", type: TYPES.BOOL },
-  volume_control: { cmd: "kf", type: TYPES.INT },
-  contrast: { cmd: "kg", type: TYPES.INT },
-  brightness: { cmd: "kh", type: TYPES.INT },
-  colour: { cmd: "ki", type: TYPES.INT },
-  tint: { cmd: "kj", type: TYPES.INT },
-  sharpness: { cmd: "kk", type: TYPES.INT },
-  osd: { cmd: "kl", type: TYPES.BOOL },
-  remote: { cmd: "km", type: TYPES.BOOL },
-  treble: { cmd: "kr", type: TYPES.INT },
-  bass: { cmd: "ks", type: TYPES.INT },
-  balance: { cmd: "kt", type: TYPES.INT },
-  temperature: { cmd: "ku", type: TYPES.INT },
-  energy: { cmd: "jq", type: TYPES.INT },
-  auto: { cmd: "ju", type: TYPES.NULL },
-  tune: { cmd: "ma", type: TYPES.NULL },
-  programme: { cmd: "mb", type: TYPES.BOOL },
-  key: { cmd: "mc", type: TYPES.NULL },
-  backlight: { cmd: "mg", type: TYPES.INT },
-  input: {
-    cmd: "xb",
-    type: TYPES.INT,
-    map: {
-      DTV: 0x0,
-      Analogue: 0x10,
-      AV: 0x20,
-      Component: 0x40,
-      RGB: 0x60,
-      HDMI1: 0x90,
-      HDMI2: 0x91,
-      HDMI3: 0x92,
-      HDMI4: 0x93,
-    }
-  }
-};
-
-// a 01 OK01x
-const CMD_REGEX = /. \d+ (..)(.*)x/
+const { TYPES, COMMANDS, CMD_REGEX } = require("./const");
 
 class LGTV {
   #defaultId;
@@ -99,7 +51,7 @@ class LGTV {
     return this.#formatInt(id ? id : this.#defaultId);
   }
   #mapInput(command, value) {
-    return COMMANDS[command].map?.[value] ?? value;
+    return COMMANDS[command].map?.[value.toString().toLowerCase()] ?? value;
   }
   #formatValue(command, value) {
     switch (this.#getCommandType(command)) {
@@ -117,7 +69,7 @@ class LGTV {
 
     const mappedInput = this.#mapInput(command, value);
 
-    return `${cmd} ${tvId} ${this.#formatValue(command, mappedInput)}`;
+    return `${cmd} ${tvId} ${this.#formatValue(command, mappedInput)}\r`;
   }
   #parseResponse(response) {
     const found = response.match(CMD_REGEX);
@@ -128,7 +80,7 @@ class LGTV {
     return { status: found[1], result: found[2] }
   }
   #send(string) {
-    return serialIO.send(this.#path, string + "\r", { "timeoutInit": 500 })
+    return serialIO.send(this.#path, string, { "timeoutInit": 500 })
   }
   set(command, value, id = null) {
     this.#isCommand(command);

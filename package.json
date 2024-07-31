@@ -1,6 +1,6 @@
 {
   "name": "lgtv-serial-complete",
-  "version": "0.9.75",
+  "version": "0.9.76",
   "description": "Command your LG TV over serial port - fork of https://github.com/ybizeul/lgtv-serial but with all commands",
   "main": "lgtv.js",
   "scripts": {
