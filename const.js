@@ -85,7 +85,7 @@ const COMMANDS = {
   treble: { cmd: "kr", type: TYPES.INT },
   bass: { cmd: "ks", type: TYPES.INT },
   balance: { cmd: "kt", type: TYPES.INT },
-  temperature: { cmd: "ku", type: TYPES.INT },
+  temperature: { cmd: "xu", type: TYPES.INT },
   energy: { cmd: "jq", type: TYPES.INT },
   auto: { cmd: "ju", type: TYPES.INT },
   tune: { cmd: "ma", type: TYPES.NULL },
